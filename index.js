@@ -8,7 +8,7 @@ function delay(ms) {
 }
 
 // Main function to process the batch data
-function processTransactionIds(filePath) {
+async function processTransactionIds(filePath) {
   console.log("Starting processing...");
 
   return new Promise((resolve, reject) => {
@@ -64,11 +64,11 @@ function processTransactionIds(filePath) {
 // Function to process each batch and handle success/error logs
 async function processBatch(transactionIdBatch, logFilePath) {
   try {
-    await delay(200); // Delay
     const batchLog = `API CALL: Processed batch of Transaction Ids: ${JSON.stringify(
       transactionIdBatch
     )}\n ${new Date().toISOString()}\n\n`;
     fs.appendFileSync(logFilePath, batchLog, "utf8");
+    await delay(200); // Delay set here 
     const response = await fetch(
       "https://testgodrejadminapi.dhwaniris.in/api/admin/v1/generate-unique-id/61deb4706379273105cfcd4d?bulkUploadFormat=true&selectType=name&updateAll=true&updateByOrder=true&orderId=34&publishedFormId=218",
       {
@@ -82,7 +82,6 @@ async function processBatch(transactionIdBatch, logFilePath) {
         body: JSON.stringify({ transactionId: transactionIdBatch }),
       }
     );
-
     const data = await response.json();
     console.log("Batch response:", data);
 

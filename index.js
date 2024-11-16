@@ -7,108 +7,144 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Main function to process the batch data
-async function processTransactionIds(filePath) {
-  console.log("Starting processing...");
-
-  return new Promise((resolve, reject) => {
-    const workBookReader = new XlsxStreamReader();
-    const readStream = fs.createReadStream(filePath);
-
-    // Open log file in append mode
-    const logFilePath = "./process_logs.log";
-
-    workBookReader.on("worksheet", function (workSheetReader) {
-      const batchSize = 25;
-      let batch = [];
-
-      workSheetReader.on("row", function (row) {
-        const transactionId = row.values[2]; // Assuming "Transaction Id" is in column B
-        if (transactionId) {
-          batch.push(transactionId);
-        }
-
-        // Process the batch when size reaches the limit
-        if (batch.length === batchSize) {
-          processBatch(batch, logFilePath); // Process batch
-          batch = []; // Reset batch
-        }
-      });
-
-      workSheetReader.on("end", function () {
-        // Process remaining rows in the batch
-        if (batch.length > 0) {
-          processBatch(batch, logFilePath); // Process the last batch
-        }
-        console.log(`Finished processing sheet: ${workSheetReader.name}`);
-      });
-
-      // Start processing rows
-      workSheetReader.process();
-    });
-
-    workBookReader.on("end", function () {
-      console.log("Finished processing all sheets.");
-      resolve(); // Signal that processing is complete
-    });
-
-    workBookReader.on("error", function (err) {
-      console.error("Error occurred while processing:", err);
-      reject(err); // Signal an error
-    });
-
-    readStream.pipe(workBookReader);
-  });
+// Logging function with levels
+function log(level, message, logFilePath) {
+  const logEntry = {
+    level,
+    message,
+    timestamp: new Date().toISOString(),
+  };
+  fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + "\n", "utf8");
 }
 
-// Function to process each batch and handle success/error logs
+// Function to process a single batch
 async function processBatch(transactionIdBatch, logFilePath) {
   try {
-    const batchLog = `API CALL: Processed batch of Transaction Ids: ${JSON.stringify(
-      transactionIdBatch
-    )}\n ${new Date().toISOString()}\n\n`;
-    fs.appendFileSync(logFilePath, batchLog, "utf8");
-    await delay(200); // Delay set here 
-    const response = await fetch(
-      "https://testgodrejadminapi.dhwaniris.in/api/admin/v1/generate-unique-id/61deb4706379273105cfcd4d?bulkUploadFormat=true&selectType=name&updateAll=true&updateByOrder=true&orderId=34&publishedFormId=218",
-      {
-        method: "POST",
-        headers: {
-          organisation: "62286c8911b4fe05d587713e",
-          "x-access-token":
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NmQ2YTdkM2JiMmM5MGE0NTcyN2VmYWEiLCJpZCI6IjY2ZDZhN2QzYmIyYzkwYTQ1NzI3ZWZhYSIsImxvZ2luSWQiOiI2NzM1ZDE5NzUwMzI3ODQxMmY3ZjY5N2IiLCJ1c2VyVHlwZSI6IkFETUlOIiwiY2F0ZWdvcnkiOiJOb25lIiwidXNlck5hbWUiOiJhZG1pbiIsInByb2plY3QiOltdLCJ1c2VyRW1haWwiOiJmYWhhZEBkaHdhbmlyaXMuY29tIiwib3JnYW5pc2F0aW9uIjpbXSwiaWF0IjoxNzMxNTgwMzExNDY3LCJleHAiOjU3NzE4NzgwMzExNDQ5LCJpc1Bhc3N3b3JkQ2hhbmdlQWxsb3dlZCI6dHJ1ZX0.-Ali_DrIgTd-x6ug9Vry18BaefbJUMbb1mh4UY28Zvg",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ transactionId: transactionIdBatch }),
-      }
+    const apiUrl =
+      "xxx/api/admin/v1/generate-unique-id/61deb4706379273105cfcd4d?bulkUploadFormat=true&selectType=name&updateAll=true&updateByOrder=true&orderId=36&publishedFormId=188";
+    const headers = {
+      organisation: "62286c8911b4fe05d587713e",
+      "x-access-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjA0MjA0ZGQ5ZDUwNmYyNjM2ZDRhNDYiLCJpZCI6IjY2MDQyMDRkZDlkNTA2ZjI2MzZkNGE0NiIsImxvZ2luSWQiOiI2NzM4NmI2ZGUyMjY1Y2Q5MDEyZmQwNDQiLCJ1c2VyVHlwZSI6ImFkbWluIiwiY2F0ZWdvcnkiOiJOb25lIiwidXNlck5hbWUiOiJBZG1pbnxTREUiLCJwcm9qZWN0IjpudWxsLCJ1c2VyRW1haWwiOiJmYWhhZEBkaHdhbmlyaXMuY29tIiwib3JnYW5pc2F0aW9uIjpbXSwiaWF0IjoxNzMxNzUwNzY1MDk5LCJleHAiOjU3NzE4OTUwNzY1MDg2LCJpc1Bhc3N3b3JkQ2hhbmdlQWxsb3dlZCI6dHJ1ZX0.x1F-B8dY7NlCZa3RVPvtEeCatJVT0XoYbdaiCv8yvNc",
+      "Content-Type": "application/json",
+    };
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ transactionId: transactionIdBatch }),
+    });
+
+    log(
+      "success",
+      `Processed batch of Transaction Ids: ${JSON.stringify(
+        transactionIdBatch
+      )}. Response: ${JSON.stringify(response)}`,
+      logFilePath
     );
-    const data = await response.json();
-    console.log("Batch response:", data);
 
-    // Log success information
-    const successLog = `SUCCESS: Processed batch of Transaction Ids: ${JSON.stringify(
-      transactionIdBatch
-    )}\nResponse: ${JSON.stringify(
-      data
-    )}\nDate: ${new Date().toISOString()}\n\n`;
-    fs.appendFileSync(logFilePath, successLog, "utf8");
+    console.log("Batch response OK");
   } catch (error) {
-    console.error("Error for Transaction ID batch:", error);
-
-    // Prepare error log entry
-    const errorLog = `ERROR: Failed batch: ${JSON.stringify(
-      transactionIdBatch
-    )}\nError Message: ${error.message}\nDate: ${new Date().toISOString()}\n\n`;
-    fs.appendFileSync(logFilePath, errorLog, "utf8");
+    console.error("Error for Transaction ID batch:", transactionIdBatch, error);
+    log(
+      "error",
+      `Failed batch of Transaction Ids: ${JSON.stringify(
+        transactionIdBatch
+      )}. Error: ${error.message}`,
+      logFilePath
+    );
   }
 }
 
-// Example usage
+// Main function to process all transaction IDs
+async function processTransactionIds(
+  filePath,
+  batchSize = 25,
+  logFilePath = "./process_logs.log"
+) {
+  console.log("Starting processing...");
+  const workBookReader = new XlsxStreamReader();
+  const readStream = fs.createReadStream(filePath);
+
+  let allBatches = [];
+  let currentBatch = [];
+
+  workBookReader.on("worksheet", (workSheetReader) => {
+    console.log(`🚀 ~ Processing sheet: ${workSheetReader.name}`);
+
+    workSheetReader.on("row", (row) => {
+      const transactionId = row.values[2]; // Assuming "Transaction Id" is in column B
+      if (transactionId) {
+        currentBatch.push(transactionId);
+      }
+
+      if (currentBatch.length === batchSize) {
+        allBatches.push(currentBatch); // Store the completed batch
+        currentBatch = []; // Reset batch
+      }
+    });
+
+    workSheetReader.on("end", () => {
+      if (currentBatch.length > 0) {
+        allBatches.push(currentBatch); // Process the remaining rows in the batch
+      }
+      console.log(`Finished processing sheet: ${workSheetReader.name}`);
+    });
+
+    workSheetReader.process();
+  });
+
+  workBookReader.on("end", async () => {
+    console.log("Finished reading all sheets. Starting batch processing...");
+    await processAllBatches(allBatches, logFilePath, 25, 500); // Process batches in sets
+    console.log(" ------ All processing complete -----");
+  });
+
+  workBookReader.on("error", (err) => {
+    console.error("Error occurred while processing:", err);
+    log("error", `Workbook processing error: ${err.message}`, logFilePath);
+  });
+
+  readStream.pipe(workBookReader);
+}
+
+// Function to process all batches in sets of 25
+async function processAllBatches(
+  batches,
+  logFilePath,
+  setBatchLimit = 25,
+  setDelayMs = 1000
+) {
+  for (let i = 0; i < batches.length; i += setBatchLimit) {
+    const set = batches.slice(i, i + setBatchLimit);
+
+    console.log(
+      `Processing batch set ${Math.floor(i / setBatchLimit) + 1} of ${Math.ceil(
+        batches.length / setBatchLimit
+      )}...`
+    );
+    await Promise.all(
+      set.map(async (batch) => {
+        await processBatch(batch, logFilePath);
+        await delay(100); // Wait 100ms between batch calls
+      })
+    );
+
+    console.log(
+      `Completed batch set ${
+        Math.floor(i / setBatchLimit) + 1
+      }. Waiting for ${setDelayMs}ms before continuing...`
+    );
+    await delay(setDelayMs); // Wait after each set of 25 batches
+  }
+}
+
 (async () => {
   try {
-    await processTransactionIds("/home/byteforge/Downloads/batch200.xlsx");
-    console.log("------------ All processing complete -----------");
-    console.log("waiting for response..");
+    await processTransactionIds(
+      "/home/byteforge/Downloads/batch200.xlsx",
+      30,
+      "./process_logs.log"
+    );
   } catch (error) {
     console.error("Error during processing:", error);
   }

@@ -14,25 +14,32 @@ function log(level, message, logFilePath) {
     message,
     timestamp: new Date().toISOString(),
   };
-  fs.appendFileSync(logFilePath, JSON.stringify(logEntry) + "\n", "utf8");
+  fs.appendFileSync(logFilePath, `${JSON.stringify(logEntry)}\n`, "utf8");
 }
 
 // Function to process a single batch
 async function processBatch(transactionIdBatch, logFilePath) {
   try {
     const apiUrl =
-      "xxx/api/admin/v1/generate-unique-id/61deb4706379273105cfcd4d?bulkUploadFormat=true&selectType=name&updateAll=true&updateByOrder=true&orderId=36&publishedFormId=188";
+      "https://portaladminapi.mgrant.in/api/admin/v1/repair-imported-question?historyOff=nul";
     const headers = {
       organisation: "62286c8911b4fe05d587713e",
-      "x-access-token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjA0MjA0ZGQ5ZDUwNmYyNjM2ZDRhNDYiLCJpZCI6IjY2MDQyMDRkZDlkNTA2ZjI2MzZkNGE0NiIsImxvZ2luSWQiOiI2NzM4NmI2ZGUyMjY1Y2Q5MDEyZmQwNDQiLCJ1c2VyVHlwZSI6ImFkbWluIiwiY2F0ZWdvcnkiOiJOb25lIiwidXNlck5hbWUiOiJBZG1pbnxTREUiLCJwcm9qZWN0IjpudWxsLCJ1c2VyRW1haWwiOiJmYWhhZEBkaHdhbmlyaXMuY29tIiwib3JnYW5pc2F0aW9uIjpbXSwiaWF0IjoxNzMxNzUwNzY1MDk5LCJleHAiOjU3NzE4OTUwNzY1MDg2LCJpc1Bhc3N3b3JkQ2hhbmdlQWxsb3dlZCI6dHJ1ZX0.x1F-B8dY7NlCZa3RVPvtEeCatJVT0XoYbdaiCv8yvNc",
+      "x-access-token":
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjA0MjA0ZGQ5ZDUwNmYyNjM2ZDRhNDYiLCJpZCI6IjY2MDQyMDRkZDlkNTA2ZjI2MzZkNGE0NiIsImxvZ2luSWQiOiI2NzM4NmI2ZGUyMjY1Y2Q5MDEyZmQwNDQiLCJ1c2VyVHlwZSI6ImFkbWluIiwiY2F0ZWdvcnkiOiJOb25lIiwidXNlck5hbWUiOiJBZG1pbnxTREUiLCJwcm9qZWN0IjpudWxsLCJ1c2VyRW1haWwiOiJmYWhhZEBkaHdhbmlyaXMuY29tIiwib3JnYW5pc2F0aW9uIjpbXSwiaWF0IjoxNzMxNzUwNzY1MDk5LCJleHAiOjU3NzE4OTUwNzY1MDg2LCJpc1Bhc3N3b3JkQ2hhbmdlQWxsb3dlZCI6dHJ1ZX0.x1F-B8dY7NlCZa3RVPvtEeCatJVT0XoYbdaiCv8yvNc",
       "Content-Type": "application/json",
     };
-
+    // change payload as per requirement
     const response = await fetch(apiUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify({ transactionId: transactionIdBatch }),
+      body: JSON.stringify({
+        parentFormId: 218,
+        query: {
+          transactionId: transactionIdBatch,
+        },
+      }),
     });
+    //
 
     log(
       "success",
@@ -41,7 +48,6 @@ async function processBatch(transactionIdBatch, logFilePath) {
       )}. Response: ${JSON.stringify(response)}`,
       logFilePath
     );
-
     console.log("Batch response OK");
   } catch (error) {
     console.error("Error for Transaction ID batch:", transactionIdBatch, error);
@@ -72,7 +78,7 @@ async function processTransactionIds(
     console.log(`🚀 ~ Processing sheet: ${workSheetReader.name}`);
 
     workSheetReader.on("row", (row) => {
-      const transactionId = row.values[2]; // Assuming "Transaction Id" is in column B
+      const transactionId = row.values[2]; // Assuming "Transaction Id" is in column B [TransactionId => payload data]
       if (transactionId) {
         currentBatch.push(transactionId);
       }
@@ -140,6 +146,7 @@ async function processAllBatches(
 
 (async () => {
   try {
+    // Add file path from your local system
     await processTransactionIds(
       "/home/byteforge/Downloads/batch200.xlsx",
       30,

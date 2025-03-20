@@ -13,6 +13,7 @@ fs.writeFileSync("./process_logs.log", "", "utf8");
 // Check for required environment variables
 if (!process.env.token || !process.env.url || !process.env.organisation) {
   log("Missing Environment Variables", "Token, URL, and Organisation required", "./process_logs.log");
+  process.exit(1);
 }
 
 // Function to add delay

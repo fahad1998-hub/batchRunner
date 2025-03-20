@@ -1,6 +1,19 @@
 import XlsxStreamReader from "xlsx-stream-reader";
 import fs from "fs";
 import fetch from "node-fetch";
+import path from "path";
+import os from "os";
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Clear the log file at the start
+fs.writeFileSync("./process_logs.log", "", "utf8");
+
+// Check for required environment variables
+if (!process.env.token || !process.env.url || !process.env.organisation) {
+  log("Missing Environment Variables", "Token, URL, and Organisation required", "./process_logs.log");
+}
 
 // Function to add delay
 function delay(ms) {
@@ -20,16 +33,14 @@ function log(level, message, logFilePath) {
 // Function to process a single batch
 async function processBatch(transactionIdBatch, logFilePath) {
   try {
-    const apiUrl =
-      "https://portaladminapi.mgrant.in/api/admin/v1/repair-imported-question?historyOff=nul";
+    const apiUrl = process.env.url;
     const headers = {
-      organisation: "62286c8911b4fe05d587713e",
-      "x-access-token":
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjA0MjA0ZGQ5ZDUwNmYyNjM2ZDRhNDYiLCJpZCI6IjY2MDQyMDRkZDlkNTA2ZjI2MzZkNGE0NiIsImxvZ2luSWQiOiI2NzM4NmI2ZGUyMjY1Y2Q5MDEyZmQwNDQiLCJ1c2VyVHlwZSI6ImFkbWluIiwiY2F0ZWdvcnkiOiJOb25lIiwidXNlck5hbWUiOiJBZG1pbnxTREUiLCJwcm9qZWN0IjpudWxsLCJ1c2VyRW1haWwiOiJmYWhhZEBkaHdhbmlyaXMuY29tIiwib3JnYW5pc2F0aW9uIjpbXSwiaWF0IjoxNzMxNzUwNzY1MDk5LCJleHAiOjU3NzE4OTUwNzY1MDg2LCJpc1Bhc3N3b3JkQ2hhbmdlQWxsb3dlZCI6dHJ1ZX0.x1F-B8dY7NlCZa3RVPvtEeCatJVT0XoYbdaiCv8yvNc",
+      organisation: process.env.organisation,
+      "x-access-token": process.env.token,
       "Content-Type": "application/json",
     };
     // change payload as per requirement
-    const response = await fetch(apiUrl, {
+    let response = await fetch(apiUrl, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -40,12 +51,12 @@ async function processBatch(transactionIdBatch, logFilePath) {
       }),
     });
     //
-
+    response = await response?.json();
     log(
       "success",
       `Processed batch of Transaction Ids: ${JSON.stringify(
         transactionIdBatch
-      )}. Response: ${JSON.stringify(response)}`,
+      )}. Response: ${JSON.stringify(response ? response.message : "No response or timed out")}`,
       logFilePath
     );
     console.log("Batch response OK");
@@ -79,6 +90,7 @@ async function processTransactionIds(
 
     workSheetReader.on("row", (row) => {
       const transactionId = row.values[2]; // Assuming "Transaction Id" is in column B [TransactionId => payload data]
+      // console.log("transactionId", transactionId);
       if (transactionId) {
         currentBatch.push(transactionId);
       }
@@ -146,12 +158,9 @@ async function processAllBatches(
 
 (async () => {
   try {
-    // Add file path from your local system
-    await processTransactionIds(
-      "/home/byteforge/Downloads/batch200.xlsx",
-      30,
-      "./process_logs.log"
-    );
+    // Construct the file path dynamically
+    const downloadsPath = path.join(os.homedir(), "Downloads", "batch.xlsx");
+    await processTransactionIds(downloadsPath, 30, "./process_logs.log");
   } catch (error) {
     console.error("Error during processing:", error);
   }

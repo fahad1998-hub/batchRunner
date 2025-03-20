@@ -4,12 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node --watch index.js"
   },
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "dotenv": "^16.4.7",
     "node-fetch": "^2.7.0",
     "xlsx": "^0.18.5",
     "xlsx-stream-reader": "^1.1.1"
